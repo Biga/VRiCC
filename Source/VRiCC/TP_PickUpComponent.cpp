@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "TP_PickUpComponent.h"
+#include "WeaponSpawner.h"
+#include <Kismet/GameplayStatics.h>
 
 UTP_PickUpComponent::UTP_PickUpComponent()
 {
@@ -27,5 +29,14 @@ void UTP_PickUpComponent::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedCo
 
 		// Unregister from the Overlap Event so it is no longer triggered
 		OnComponentBeginOverlap.RemoveAll(this);
+
+		TArray<AActor*> FoundActors;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AWeaponSpawner::StaticClass(), FoundActors);
+		if (FoundActors.Num() > 0)
+		{
+			AWeaponSpawner* spawner = Cast<AWeaponSpawner>(FoundActors[0]);
+			spawner->OnPickUpWeapon.Broadcast();
+		}
+		
 	}
 }

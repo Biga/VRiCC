@@ -27,6 +27,10 @@ void UTP_WeaponComponent::Fire()
 		return;
 	}
 
+	if (_Reloading)
+	{
+		return;
+	}
 
 	if (Character->VRiCC_ShotsLeft == 0)
 	{
@@ -37,10 +41,18 @@ void UTP_WeaponComponent::Fire()
 			Character->VRiCC_AmmoRacks--;
 			Character->ShowAmmoInfo();
 
+			_Reloading = true;
+
+			UGameplayStatics::PlaySoundAtLocation(this, ReloadSound, Character->GetActorLocation());
+			GetWorld()->GetTimerManager().SetTimer(	ReloadTimerHandle, this, &UTP_WeaponComponent::ReloadAmmo, 1.0, false); 
+
 			return;
 		}
 
 		// out of ammo
+
+
+		UGameplayStatics::PlaySoundAtLocation(this, EmptySound, Character->GetActorLocation());
 		return;
 	}
 
