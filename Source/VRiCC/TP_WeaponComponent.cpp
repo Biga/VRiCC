@@ -2,7 +2,6 @@
 
 
 #include "TP_WeaponComponent.h"
-#include "VRiCCCharacter.h"
 #include "VRiCCProjectile.h"
 #include "GameFramework/PlayerController.h"
 #include "Camera/PlayerCameraManager.h"
@@ -19,9 +18,10 @@ UTP_WeaponComponent::UTP_WeaponComponent()
 {
 	// Default offset from the character location for projectiles to spawn
 	MuzzleOffset = FVector(100.0f, 0.0f, 10.0f);
+	_FiringMode = FiringMode::FiringMode_Single;
 }
 
-
+// press/hold fire main method
 void UTP_WeaponComponent::Fire()
 {
 	if (Character == nullptr || Character->GetController() == nullptr)
@@ -45,13 +45,47 @@ void UTP_WeaponComponent::Fire()
 		}
 
 		// out of ammo
+		GetWorld()->GetTimerManager().ClearTimer(AutoFireTimerHandle);
 		UGameplayStatics::PlaySoundAtLocation(this, EmptySound, Character->GetActorLocation());
 		return;
 	}
 
-	// fire
+	// single fire when pressed
+
+	if (_FiringMode == FiringMode::FiringMode_Single)
+	{
+		FireAndHit();
+	}
+
+}
+
+// call timer for auto fire
+void UTP_WeaponComponent::AutoFire()
+{
+	if (_FiringMode == FiringMode::FiringMode_Auto)
+	{
+		GetWorld()->GetTimerManager().SetTimer(AutoFireTimerHandle, this, &UTP_WeaponComponent::FireAndHit, 0.5, true);
+
+	}
+}
+
+// released fire input, stop auto fire
+void UTP_WeaponComponent::FireStop()
+{
+	GetWorld()->GetTimerManager().ClearTimer(AutoFireTimerHandle);
+}
+
+void UTP_WeaponComponent::FireAndHit()
+{
+	if (_FiringMode == FiringMode::FiringMode_Auto && Character->VRiCC_ShotsLeft == 0)
+	{
+		FireStop();
+		return;
+	}
+	
+	
 	Character->VRiCC_ShotsLeft--;
-	Character->ShowAmmoInfo();
+	Character->ShowAmmoInfo(_FiringMode);
 
 	FHitResult OutHit;
 	const FRotator SpawnRotation = Character->GetControlRotation();
@@ -70,7 +104,7 @@ void UTP_WeaponComponent::Fire()
 
 	// TC_Weapon trace channel check - ECC_GameTraceChannel1
 	if (GetWorld()->LineTraceSingleByChannel(OutHit, Start, End, ECollisionChannel::ECC_GameTraceChannel1, CollisionParams))
-	//if (GetWorld()->LineTraceSingleByObjectType(OutHit, Start, End, CollObjects, CollisionParams))
+		//if (GetWorld()->LineTraceSingleByObjectType(OutHit, Start, End, CollObjects, CollisionParams))
 	{
 		if (OutHit.bBlockingHit)
 		{
@@ -79,7 +113,7 @@ void UTP_WeaponComponent::Fire()
 
 			FString n1 = OutHit.GetActor()->GetName();
 			bool b1 = OutHit.Component->IsSimulatingPhysics();
-			
+
 			if ((OutHit.GetActor() != nullptr) && (OutHit.GetActor() != Character))
 			{
 				// physical actors
@@ -98,25 +132,25 @@ void UTP_WeaponComponent::Fire()
 
 				}
 			}
-			
+
 		}
 		else
 		{
-			DrawDebugLine(GetWorld(), Start, End, FColor::Yellow , true, -1.0f, 0, 0.5f);
+			DrawDebugLine(GetWorld(), Start, End, FColor::Yellow, true, -1.0f, 0, 0.5f);
 		}
 	}
 	else
 	{
 		DrawDebugLine(GetWorld(), Start, End, FColor::Green, true, -1.0f, 0, 0.5f);
 	}
-	
+
 
 	// Try and play the sound if specified
 	if (FireSound != nullptr)
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, FireSound, Character->GetActorLocation());
 	}
-	
+
 	// Try and play a firing animation if specified
 	if (FireAnimation != nullptr)
 	{
@@ -129,6 +163,7 @@ void UTP_WeaponComponent::Fire()
 	}
 }
 
+
 // Fill the ammorack and decrease racks number
 void UTP_WeaponComponent::Reload()
 {
@@ -137,15 +172,27 @@ void UTP_WeaponComponent::Reload()
 		_Reloading = true;
 
 		UGameplayStatics::PlaySoundAtLocation(this, ReloadSound, Character->GetActorLocation());
-		GetWorld()->GetTimerManager().SetTimer(ReloadTimerHandle, this, &UTP_WeaponComponent::ReloadAmmoReset, 1.0, false);
+		GetWorld()->GetTimerManager().SetTimer(ReloadTimerHandle, this, &UTP_WeaponComponent::ReloadAmmoReset, 1.0f, false);
 
 		Character->VRiCC_ShotsLeft = Character->VRiCC_ShotsPerRack;
 		Character->VRiCC_AmmoRacks--;
-		Character->ShowAmmoInfo();
+		Character->ShowAmmoInfo(_FiringMode);
 	}
 }
 
+// simple switch for firing mode
+// single = single shot
+// auto = firing continously per 0.5 seconds until needs to reload/holding fire
+void UTP_WeaponComponent::ChangeFireMode()
+{
+	if (_FiringMode == FiringMode::FiringMode_Single)
+		_FiringMode = FiringMode::FiringMode_Auto;
+	else
+		_FiringMode = FiringMode::FiringMode_Single;
+	Character->ShowAmmoInfo(_FiringMode);
+}
 
+// added check hold states of Fire input for auto firing mode
 void UTP_WeaponComponent::AttachWeapon(AVRiCCCharacter* TargetCharacter)
 {
 	Character = TargetCharacter;
@@ -163,7 +210,7 @@ void UTP_WeaponComponent::AttachWeapon(AVRiCCCharacter* TargetCharacter)
 	// switch bHasRifle so the animation blueprint can switch to another animation set
 	Character->SetHasRifle(true);
 	Character->AttachWeaponHUD(Character->GetMesh1P(), FName(TEXT("GripPoint")));
-	Character->ShowAmmoInfo();
+	Character->ShowAmmoInfo(_FiringMode);
 
 	// Set up action bindings
 	if (APlayerController* PlayerController = Cast<APlayerController>(Character->GetController()))
@@ -178,8 +225,12 @@ void UTP_WeaponComponent::AttachWeapon(AVRiCCCharacter* TargetCharacter)
 		{
 			// Fire
 			EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Triggered, this, &UTP_WeaponComponent::Fire);
+			EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &UTP_WeaponComponent::AutoFire);
+			EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &UTP_WeaponComponent::FireStop);
 			// Reload
 			EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Triggered, this, &UTP_WeaponComponent::Reload);
+			// Change fire mode
+			EnhancedInputComponent->BindAction(FireModeAction, ETriggerEvent::Triggered, this, &UTP_WeaponComponent::ChangeFireMode);
 		}
 	}
 }

@@ -16,6 +16,13 @@ struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
+UENUM(BlueprintType)
+enum class FiringMode : uint8 {
+	FiringMode_Single = 0 UMETA(DisplayName = "Single"),
+	FiringMode_Auto = 1  UMETA(DisplayName = "Auto")
+};
+
+
 UCLASS(config=Game)
 class AVRiCCCharacter : public ACharacter
 {
@@ -93,13 +100,13 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Ammo")
 	int VRiCC_AmmoRacks;
 
-	void ShowAmmoInfo();
+	void ShowAmmoInfo(FiringMode fmode);
 	void ShowHealth();
 
 	UFUNCTION(BlueprintNativeEvent, BluePrintCallable, Category = "Ammo")
 	void AttachWeaponHUD(USkeletalMeshComponent* SKM_Comp, FName Slot);
 	UFUNCTION(BlueprintNativeEvent, BluePrintCallable, Category = "Ammo")
-	void ShowAmmoInfoEvent(int ShotsPerAmmo, int ShotsLeft, int Ammo);
+	void ShowAmmoInfoEvent(int ShotsPerAmmo, int ShotsLeft, int Ammo, FiringMode fireMode);
 	UFUNCTION(BlueprintNativeEvent, BluePrintCallable, Category = "Stats")
 	void ShowHealthEvent(float Health);
 	UFUNCTION()

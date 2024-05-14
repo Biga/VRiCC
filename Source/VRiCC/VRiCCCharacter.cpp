@@ -134,9 +134,9 @@ void AVRiCCCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 }
 
 
-void AVRiCCCharacter::ShowAmmoInfo()
+void AVRiCCCharacter::ShowAmmoInfo(FiringMode fmode)
 {
-	ShowAmmoInfoEvent(VRiCC_ShotsPerRack, VRiCC_ShotsLeft, VRiCC_AmmoRacks);
+	ShowAmmoInfoEvent(VRiCC_ShotsPerRack, VRiCC_ShotsLeft, VRiCC_AmmoRacks, fmode);
 }
 
 void AVRiCCCharacter::ShowHealth()
@@ -144,32 +144,39 @@ void AVRiCCCharacter::ShowHealth()
 	ShowHealthEvent(VRiCC_Health);
 }
 
-// showing ammo on UI
-void AVRiCCCharacter::ShowAmmoInfoEvent_Implementation(int ShotsPerAmmo, int ShotsLeft, int Ammo)
+// BP event showing ammo on UI
+void AVRiCCCharacter::ShowAmmoInfoEvent_Implementation(int ShotsPerAmmo, int ShotsLeft, int Ammo, FiringMode firingMode)
 {
 
 }
 
+// BP event for attaching weapon HUD
 void AVRiCCCharacter::AttachWeaponHUD_Implementation(USkeletalMeshComponent* SKM_Comp, FName Slot)
 {
 
 }
 
+// BP event for showing health UI
 void AVRiCCCharacter::ShowHealthEvent_Implementation(float Health)
 {
 
 }
 
+// taking damage from lince trace hit, Damage is constant 0.1 
 float AVRiCCCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	VRiCC_Health -= Damage;
+	if (VRiCC_Health > 0)
+	{
+		VRiCC_Health -= Damage;
+	}
+
 	if (VRiCC_Health <= 0)
 	{
+		VRiCC_Health = 0;
 		// Die
 	}
-	else
-	{
-		ShowHealth();
-	}
+
+
+	ShowHealth();
 	return 0;
 }

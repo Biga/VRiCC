@@ -4,9 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "VRiCCCharacter.h"
 #include "TP_WeaponComponent.generated.h"
 
 class AVRiCCCharacter;
+
+
 
 UCLASS(Blueprintable, BlueprintType, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class VRICC_API UTP_WeaponComponent : public USkeletalMeshComponent
@@ -45,6 +48,8 @@ public:
 	class UInputAction* FireAction;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* ReloadAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* FireModeAction;
 
 	/** Sets default values for this component's properties */
 	UTP_WeaponComponent();
@@ -56,7 +61,14 @@ public:
 	/** Make the weapon Fire a Projectile */
 	UFUNCTION(BlueprintCallable, Category="Weapon")
 	void Fire();
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void AutoFire();
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void FireStop();
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void ChangeFireMode();
 	void Reload();
+	void FireAndHit();
 
 protected:
 	/** Ends gameplay for this component. */
@@ -71,6 +83,8 @@ private:
 	AVRiCCCharacter* Character;
 
 	FTimerHandle ReloadTimerHandle;
+	FTimerHandle AutoFireTimerHandle;
 
 	bool	_Reloading;
+	FiringMode _FiringMode;
 };
