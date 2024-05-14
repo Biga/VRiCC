@@ -77,6 +77,7 @@ void UTP_WeaponComponent::FireStop()
 
 void UTP_WeaponComponent::FireAndHit()
 {
+	// if called by autofire, return when weapon is out, player can reload with click
 	if (_FiringMode == FiringMode::FiringMode_Auto && Character->VRiCC_ShotsLeft == 0)
 	{
 		FireStop();
@@ -87,24 +88,20 @@ void UTP_WeaponComponent::FireAndHit()
 	Character->VRiCC_ShotsLeft--;
 	Character->ShowAmmoInfo(_FiringMode);
 
+	// line trace: TC_Weapon trace channel check - ECC_GameTraceChannel1
 	FHitResult OutHit;
 	const FRotator SpawnRotation = Character->GetControlRotation();
-	//const FVector Start = GetComponentLocation() + SpawnRotation.RotateVector(MuzzleOffset);
 	const FVector MuzzlePos = GetSocketLocation("Muzzle");
 	FVector ForwardVector = GetSocketRotation("GripPoint").Vector() * -1.0f;
-	const FVector Start = MuzzlePos + (ForwardVector * 10.0f);
+	const FVector Start = MuzzlePos + (ForwardVector * 5.0f);
 
 	FVector End = ((ForwardVector * 1000.f) + Start);
 	FCollisionQueryParams CollisionParams;
 	FCollisionObjectQueryParams CollObjects;
 	CollisionParams.AddIgnoredActor(Character);
 
-	CollObjects.AddObjectTypesToQuery(ECollisionChannel::ECC_Pawn);
-	CollObjects.AddObjectTypesToQuery(ECollisionChannel::ECC_PhysicsBody);
-
-	// TC_Weapon trace channel check - ECC_GameTraceChannel1
+	// debug trace line: red: hit, green: no hit
 	if (GetWorld()->LineTraceSingleByChannel(OutHit, Start, End, ECollisionChannel::ECC_GameTraceChannel1, CollisionParams))
-		//if (GetWorld()->LineTraceSingleByObjectType(OutHit, Start, End, CollObjects, CollisionParams))
 	{
 		if (OutHit.bBlockingHit)
 		{
@@ -116,34 +113,31 @@ void UTP_WeaponComponent::FireAndHit()
 
 			if ((OutHit.GetActor() != nullptr) && (OutHit.GetActor() != Character))
 			{
-				// physical actors
+				// add force to physical actors
 				if (OutHit.Component != nullptr && OutHit.Component->IsSimulatingPhysics())
 				{
 					FString s1 = OutHit.Component.Get()->GetName();
 					OutHit.Component->AddImpulseAtLocation(OutHit.ImpactNormal * -100000.0f, OutHit.ImpactPoint);
 				}
 
-				// enemy players
+				// add damage to enemy players
 				if (Cast<ACharacter>(OutHit.GetActor()))
 				{
 					TSubclassOf<UDamageType> DmgTypeClass = UDamageType::StaticClass();
 
 					OutHit.GetActor()->TakeDamage(0.1f, FDamageEvent(DmgTypeClass), GetOwner()->GetInstigatorController(), Character);
-
 				}
 			}
-
 		}
 		else
 		{
-			DrawDebugLine(GetWorld(), Start, End, FColor::Yellow, true, -1.0f, 0, 0.5f);
+			DrawDebugLine(GetWorld(), Start, End, FColor::Yellow, false, 1.0f, 0, 0.5f);
 		}
 	}
 	else
 	{
-		DrawDebugLine(GetWorld(), Start, End, FColor::Green, true, -1.0f, 0, 0.5f);
+		DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, 1.0f, 0, 0.5f);
 	}
-
 
 	// Try and play the sound if specified
 	if (FireSound != nullptr)
