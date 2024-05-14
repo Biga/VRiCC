@@ -11,6 +11,8 @@
 #include "EnhancedInputSubsystems.h"
 #include "DrawDebugHelpers.h"
 #include "Camera/CameraComponent.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/DamageEvents.h"
 
 // Sets default values for this component's properties
 UTP_WeaponComponent::UTP_WeaponComponent()
@@ -66,7 +68,9 @@ void UTP_WeaponComponent::Fire()
 	CollObjects.AddObjectTypesToQuery(ECollisionChannel::ECC_Pawn);
 	CollObjects.AddObjectTypesToQuery(ECollisionChannel::ECC_PhysicsBody);
 
-	if (GetWorld()->LineTraceSingleByObjectType(OutHit, Start, End, CollObjects, CollisionParams))
+	// TC_Weapon trace channel check - ECC_GameTraceChannel1
+	if (GetWorld()->LineTraceSingleByChannel(OutHit, Start, End, ECollisionChannel::ECC_GameTraceChannel1, CollisionParams))
+	//if (GetWorld()->LineTraceSingleByObjectType(OutHit, Start, End, CollObjects, CollisionParams))
 	{
 		if (OutHit.bBlockingHit)
 		{
@@ -76,11 +80,25 @@ void UTP_WeaponComponent::Fire()
 			FString n1 = OutHit.GetActor()->GetName();
 			bool b1 = OutHit.Component->IsSimulatingPhysics();
 			
-			if ((OutHit.GetActor() != nullptr) && (OutHit.GetActor() != Character) && (OutHit.Component != nullptr) && OutHit.Component->IsSimulatingPhysics())
+			if ((OutHit.GetActor() != nullptr) && (OutHit.GetActor() != Character))
 			{
-				FString s1 = OutHit.Component.Get()->GetName();
-				OutHit.Component->AddImpulseAtLocation(OutHit.ImpactNormal * -100000.0f, OutHit.ImpactPoint);
+				// physical actors
+				if (OutHit.Component != nullptr && OutHit.Component->IsSimulatingPhysics())
+				{
+					FString s1 = OutHit.Component.Get()->GetName();
+					OutHit.Component->AddImpulseAtLocation(OutHit.ImpactNormal * -100000.0f, OutHit.ImpactPoint);
+				}
+
+				// enemy players
+				if (Cast<ACharacter>(OutHit.GetActor()))
+				{
+					TSubclassOf<UDamageType> DmgTypeClass = UDamageType::StaticClass();
+
+					OutHit.GetActor()->TakeDamage(0.1f, FDamageEvent(DmgTypeClass), GetOwner()->GetInstigatorController(), Character);
+
+				}
 			}
+			
 		}
 		else
 		{

@@ -44,6 +44,7 @@ AVRiCCCharacter::AVRiCCCharacter()
 	VRiCC_ShotsPerRack = 8;
 	VRiCC_ShotsLeft = VRiCC_ShotsPerRack;
 	VRiCC_AmmoRacks = 4;
+	VRiCC_Health = 1.0f;
 }
 
 void AVRiCCCharacter::BeginPlay()
@@ -59,7 +60,7 @@ void AVRiCCCharacter::BeginPlay()
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
 	}
-
+	ShowHealth();
 }
 
 //////////////////////////////////////////////////////////////////////////// Input
@@ -129,12 +130,18 @@ void AVRiCCCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	// This tells UE that we want to replicate this variable
 	DOREPLIFETIME(AVRiCCCharacter, VRiCC_AmmoRacks);
 	DOREPLIFETIME(AVRiCCCharacter, VRiCC_ShotsLeft);
+	DOREPLIFETIME(AVRiCCCharacter, VRiCC_Health);
 }
 
 
 void AVRiCCCharacter::ShowAmmoInfo()
 {
 	ShowAmmoInfoEvent(VRiCC_ShotsPerRack, VRiCC_ShotsLeft, VRiCC_AmmoRacks);
+}
+
+void AVRiCCCharacter::ShowHealth()
+{
+	ShowHealthEvent(VRiCC_Health);
 }
 
 // showing ammo on UI
@@ -146,4 +153,23 @@ void AVRiCCCharacter::ShowAmmoInfoEvent_Implementation(int ShotsPerAmmo, int Sho
 void AVRiCCCharacter::AttachWeaponHUD_Implementation(USkeletalMeshComponent* SKM_Comp, FName Slot)
 {
 
+}
+
+void AVRiCCCharacter::ShowHealthEvent_Implementation(float Health)
+{
+
+}
+
+float AVRiCCCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	VRiCC_Health -= Damage;
+	if (VRiCC_Health <= 0)
+	{
+		// Die
+	}
+	else
+	{
+		ShowHealth();
+	}
+	return 0;
 }

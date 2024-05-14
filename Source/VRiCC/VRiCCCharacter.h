@@ -83,6 +83,9 @@ public:
 	/** Returns FirstPersonCameraComponent subobject **/
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
 
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Stats")
+	float VRiCC_Health;
+	
 	UPROPERTY(BlueprintReadWrite, Category = "Ammo")
 	int VRiCC_ShotsPerRack;
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Ammo")
@@ -91,13 +94,16 @@ public:
 	int VRiCC_AmmoRacks;
 
 	void ShowAmmoInfo();
+	void ShowHealth();
 
 	UFUNCTION(BlueprintNativeEvent, BluePrintCallable, Category = "Ammo")
 	void AttachWeaponHUD(USkeletalMeshComponent* SKM_Comp, FName Slot);
 	UFUNCTION(BlueprintNativeEvent, BluePrintCallable, Category = "Ammo")
 	void ShowAmmoInfoEvent(int ShotsPerAmmo, int ShotsLeft, int Ammo);
-
-
+	UFUNCTION(BlueprintNativeEvent, BluePrintCallable, Category = "Stats")
+	void ShowHealthEvent(float Health);
+	UFUNCTION()
+	virtual float TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 };
 
