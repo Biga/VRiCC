@@ -27,42 +27,31 @@ void UTP_WeaponComponent::Fire()
 		return;
 	}
 
+	// Reloading state (1sec)
 	if (_Reloading)
 	{
 		return;
 	}
 
+	// Need to reload
 	if (Character->VRiCC_ShotsLeft == 0)
 	{
-		// reload
 		if (Character->VRiCC_AmmoRacks > 0)
 		{
-			Character->VRiCC_ShotsLeft = Character->VRiCC_ShotsPerRack;
-			Character->VRiCC_AmmoRacks--;
-			Character->ShowAmmoInfo();
-
-			_Reloading = true;
-
-			UGameplayStatics::PlaySoundAtLocation(this, ReloadSound, Character->GetActorLocation());
-			GetWorld()->GetTimerManager().SetTimer(	ReloadTimerHandle, this, &UTP_WeaponComponent::ReloadAmmo, 1.0, false); 
-
+			Reload();
 			return;
 		}
 
 		// out of ammo
-
-
 		UGameplayStatics::PlaySoundAtLocation(this, EmptySound, Character->GetActorLocation());
 		return;
 	}
 
 	// fire
-	
 	Character->VRiCC_ShotsLeft--;
 	Character->ShowAmmoInfo();
 
 	FHitResult OutHit;
-
 	const FRotator SpawnRotation = Character->GetControlRotation();
 	//const FVector Start = GetComponentLocation() + SpawnRotation.RotateVector(MuzzleOffset);
 	const FVector MuzzlePos = GetSocketLocation("Muzzle");
@@ -78,12 +67,11 @@ void UTP_WeaponComponent::Fire()
 	CollObjects.AddObjectTypesToQuery(ECollisionChannel::ECC_PhysicsBody);
 
 	if (GetWorld()->LineTraceSingleByObjectType(OutHit, Start, End, CollObjects, CollisionParams))
-	//if (GetWorld()->LineTraceSingleByChannel(OutHit, Start, End, ECC_Visibility, CollisionParams))
 	{
 		if (OutHit.bBlockingHit)
 		{
 			End = OutHit.Location;
-			DrawDebugLine(GetWorld(), Start, End, FColor::Red, true, -1.0f, 0, 0.5f);
+			DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 1.0f, 0, 0.5f);
 
 			FString n1 = OutHit.GetActor()->GetName();
 			bool b1 = OutHit.Component->IsSimulatingPhysics();
@@ -123,6 +111,23 @@ void UTP_WeaponComponent::Fire()
 	}
 }
 
+// Fill the ammorack and decrease racks number
+void UTP_WeaponComponent::Reload()
+{
+	if (Character && Character->VRiCC_ShotsLeft < Character->VRiCC_ShotsPerRack && Character->VRiCC_AmmoRacks > 0)
+	{
+		_Reloading = true;
+
+		UGameplayStatics::PlaySoundAtLocation(this, ReloadSound, Character->GetActorLocation());
+		GetWorld()->GetTimerManager().SetTimer(ReloadTimerHandle, this, &UTP_WeaponComponent::ReloadAmmoReset, 1.0, false);
+
+		Character->VRiCC_ShotsLeft = Character->VRiCC_ShotsPerRack;
+		Character->VRiCC_AmmoRacks--;
+		Character->ShowAmmoInfo();
+	}
+}
+
+
 void UTP_WeaponComponent::AttachWeapon(AVRiCCCharacter* TargetCharacter)
 {
 	Character = TargetCharacter;
@@ -155,6 +160,8 @@ void UTP_WeaponComponent::AttachWeapon(AVRiCCCharacter* TargetCharacter)
 		{
 			// Fire
 			EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Triggered, this, &UTP_WeaponComponent::Fire);
+			// Reload
+			EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Triggered, this, &UTP_WeaponComponent::Reload);
 		}
 	}
 }

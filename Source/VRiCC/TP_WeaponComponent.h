@@ -43,6 +43,8 @@ public:
 	/** Fire Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 	class UInputAction* FireAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* ReloadAction;
 
 	/** Sets default values for this component's properties */
 	UTP_WeaponComponent();
@@ -54,6 +56,7 @@ public:
 	/** Make the weapon Fire a Projectile */
 	UFUNCTION(BlueprintCallable, Category="Weapon")
 	void Fire();
+	void Reload();
 
 protected:
 	/** Ends gameplay for this component. */
@@ -61,7 +64,7 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UFUNCTION()
-	void ReloadAmmo() { _Reloading = false; }
+	void ReloadAmmoReset() { _Reloading = false; }
 
 private:
 	/** The Character holding this weapon*/

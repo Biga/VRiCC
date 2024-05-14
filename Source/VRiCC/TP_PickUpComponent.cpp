@@ -8,6 +8,7 @@ UTP_PickUpComponent::UTP_PickUpComponent()
 {
 	// Setup the Sphere Collision
 	SphereRadius = 32.f;
+	Entered = false;
 }
 
 void UTP_PickUpComponent::BeginPlay()
@@ -22,8 +23,9 @@ void UTP_PickUpComponent::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedCo
 {
 	// Checking if it is a First Person Character overlapping
 	AVRiCCCharacter* Character = Cast<AVRiCCCharacter>(OtherActor);
-	if(Character != nullptr)
+	if(Character != nullptr && Character->GetHasRifle() == false && Entered == false)
 	{
+		Entered = true;
 		// Notify that the actor is being picked up
 		OnPickUp.Broadcast(Character);
 
